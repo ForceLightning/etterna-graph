@@ -435,7 +435,9 @@ def calc_ratings_for_sessions(xml):
     # TODO: Move overall ratings calculation to rust
     def ratings_list(i):
         ratings = [rating_vector[i] for rating_vector in timeline.rating_vectors]
-        overall = (sum(ratings) - min(ratings)) / 6
+        # overall = (sum(ratings) - min(ratings)) / 6
+        overall = timeline.overall_ratings[i]
+        # print(f"rating vec len: {len(timeline.rating_vectors[0])}, overall len: {len(timeline.overall_ratings)}")
         ratings.insert(0, overall)
         return ratings
 

@@ -86,10 +86,10 @@ mod calc_rating {
                 for &vv in v.iter() {
                     let power_rating: f64 =
                         2.0f64 / libm::erfc(delta_multiplier * (vv - rating) as f64);
-                    sum += f64::max(0.0f64, power_rating);
+                    sum += f64::max(0.0f64, power_rating - 2.0f64);
                 }
 
-                if 2f64.powf(rating as f64 * 0.1) < sum {
+                if 2f64.powf(rating as f64 * 0.1) >= sum {
                     break;
                 }
             }
@@ -137,9 +137,9 @@ impl SkillTimeline {
             index += day_ids.count();
             for (i, ssr_vector) in ssr_vectors.iter().enumerate() {
                 //rating_vectors[i].push(calc_rating::calc_rating(&ssr_vector[..index], 1.11, 0.25));
-                let skill_vector: Vec<_> = ssr_vector[..index].iter().map(|x| x).collect();
+                let skill_vector: Vec<_> = ssr_vector.iter().map(|x| x).collect();
                 rating_vectors[i].push(calc_rating::aggregate_skill(
-                    &skill_vector[..],
+                    &skill_vector[..index],
                     0.1f64,
                     1.05f32,
                     None,
