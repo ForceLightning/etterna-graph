@@ -34,9 +34,9 @@ impl TimingInfo {
 		for pair in string.split(|&c| c == b',') {
 			let equal_sign_index = pair.iter().position(|&c| c == b'=')
 					.ok_or(anyhow!("No equals sign in bpms entry"))?;
-			let beat: f64 = lexical_core::parse_lossy(trim_bstr(&pair[..equal_sign_index]))
+			let beat: f64 = lexical_core::parse::<f64>(trim_bstr(&pair[..equal_sign_index]))
 					.map_err(|e| anyhow!(format!("Couldn't parse beat: {:?}", e)))?;
-			let bpm: f64 = lexical_core::parse_lossy(trim_bstr(&pair[equal_sign_index+1..]))
+			let bpm: f64 = lexical_core::parse::<f64>(trim_bstr(&pair[equal_sign_index+1..]))
 					.map_err(|e| anyhow!(format!("Couldn't parse bpm: {:?}", e)))?;
 			changes.push(BpmChange { beat, bpm });
 		}

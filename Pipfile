@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pyqt5 = "*"
+python-dateutil = "*"
+pyqtgraph = {editable = true, ref = "master", git = "git+https://github.com/pyqtgraph/pyqtgraph"}
+
+[dev-packages]
+pynvim = "*"
+black = "*"
+
+[requires]
+python_version = "3.12"
+python_full_version = "3.12.1"

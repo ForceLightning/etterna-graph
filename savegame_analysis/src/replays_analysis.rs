@@ -130,7 +130,7 @@ struct ReplayFileData {
 
 pub fn parse_sm_float(string: &[u8]) -> Option<f32> {
 	//~ let string = &string[..string.len()-1]; // cut off last digit to speed up float parsing # REMEMBER
-	return lexical_core::parse_lossy(string).ok();
+	return lexical_core::parse::<f32>(string).ok();
 	
 	/*
 	// For performance reasons, this assumes that the passed-in bytestring is in the format
@@ -532,8 +532,8 @@ fn calculate_standard_deviation(offset_buckets: &[u64], offset_bucket_range: u64
 #[pymethods]
 impl ReplaysAnalysis {
 	#[new]
-	pub fn create(prefix: &str, scorekeys: Vec<&str>, wifescores: Vec<f32>,
-			packs: Vec<&str>, songs: Vec<&str>,
+	pub fn create(prefix: &str, scorekeys: Vec<String>, wifescores: Vec<f32>,
+			packs: Vec<String>, songs: Vec<String>,
 			rates: Vec<f32>,
 			songs_root: &str
 		) -> Self {

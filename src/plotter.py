@@ -375,7 +375,7 @@ def draw(qapp, textbox_container: QWidget, plot_container: QWidget, prefs) -> Li
 	plot = chart_wrapper.draw(
 		type_="stacked line",
 		flags="time_xaxis step",
-		color=["ffffff", *util.skillset_colors], # Include overall
+		color=["#ffffff", *util.skillset_colors], # Include overall
 		legend=["Overall", *util.skillsets], # Include overall
 		data=g.gen_skillset_development(xml),
 	)

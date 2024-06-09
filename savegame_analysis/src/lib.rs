@@ -23,7 +23,7 @@ pub mod util; // pub, because the stuff in util should be general-purpose anyway
 use pyo3::prelude::*;
 
 #[pymodule]
-fn savegame_analysis(_py: Python, m: &PyModule) -> PyResult<()> {
+fn savegame_analysis(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 	m.add_class::<ReplaysAnalysis>()?;
 	m.add_class::<SkillTimeline>()?;
 	
