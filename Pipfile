@@ -11,6 +11,7 @@ pyqtgraph = {editable = true, ref = "master", git = "git+https://github.com/pyqt
 [dev-packages]
 pynvim = "*"
 black = "*"
+maturin = "*"
 
 [requires]
 python_version = "3.12"
