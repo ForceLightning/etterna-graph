@@ -1,10 +1,13 @@
 from dataclasses import dataclass
 import os
 from typing import *
+from xml.etree.ElementTree import Element
 
-import app
-import util
-from util import parsedate
+from . import app
+from .savegame_analysis import ReplaysAnalysis as RustReplaysAnalysis
+from .savegame_analysis import FastestComboInfo
+from . import util
+from .util import parsedate
 
 
 @dataclass
@@ -24,55 +27,92 @@ class ReplaysAnalysis:
         self.wife2_wifescores: list[float] | None = (
             None  # this one doesn't need timingdata
         )
-        self.offset_mean = 0
+        self.offset_mean: float = 0
         self.notes_per_column = [0, 0, 0, 0]
         self.cbs_per_column = [0, 0, 0, 0]
-        self.longest_mcombo = (0, None)
-        self.sub_93_offset_buckets = {}
-        self.standard_deviation = 0
-        self.fastest_combo: Optional[FastestCombo] = None
-        self.fastest_jack: Optional[FastestCombo] = None
-        self.fastest_acc: Optional[FastestCombo] = None
+        self.longest_mcombo: tuple[int, Element | None] = (0, None)
+        self.num_near_hits: float | int = 0.0
+        self.sub_93_offset_buckets: dict[int, int] = {}
+        self.standard_deviation: float = 0
+        self.total_notes: int = 0
+        self.fastest_combo: FastestCombo | None = None
+        self.fastest_jack: FastestCombo | None = None
+        self.fastest_acc: FastestCombo | None = None
         # these three do
-        self.current_wifescores: Optional[list[float]] = None
-        self.new_wifescores: Optional[list[float]] = None
-        self.wifescore_scores: Optional[list[Any]] = None
+        self.current_wifescores: list[float] | None = None
+        self.new_wifescores: list[float] | None = None
+        self.wifescore_scores: list[Any] | None = None
 
 
-# This function is responsible for replay analysis. Every chart that uses replay data has it from
-# here.
-# It works by:
-# 1) Collecting all chartkeys into a list
-# 2) Passing the list to savegame_analysis library (written in Rust, so it's blazingly fast :tm:)
-# 3) Transfer the data from Rusts's ReplaysAnalaysis object to an instance of our ReplaysAnalysis
-#    class written in Python
-# 3.1) This involves traversing the xml once again, to collect score datetimes and score xml objects
-def analyze(xml, replays) -> Optional[ReplaysAnalysis]:
-    import savegame_analysis
-
+def analyze(xml: Element, replays: str) -> ReplaysAnalysis | None:
     """
-	create(prefix: &str, scorekeys: Vec<&str>, wifescores: Vec<f32>,
-           packs: Vec<&str>, songs: Vec<&str>,
-           songs_root: &str
-	"""
+    This function is responsible for replay analysis. Every chart that uses replay data has it from
+    here.
+
+    It works by:
+    1) Collecting all chartkeys into a list.
+    2) Passing the list to the `savegame_analysis` library (written in Rust, so it's blazingly fast
+        :tm:)
+    3) Transfer the data from Rust's `ReplaysAnalysis` object to an instance of the
+        `ReplaysAnalysis` class written in Python.
+        Note: this involves traversing the xml file once again, to collect score datetimes and
+        score xml objects.
+
+    Args:
+        xml (Element): The `Etterna.xml` Element object.
+        replays (str): Path to the replays folder (I think)
+
+    Returns:
+        ReplaysAnalysis | None: Replays analysis object.
+
+    Example:
+        # Create the python representation from the rust representation
+        r = ReplaysAnalysis()
+        chartkeys: list[str] = []
+        wifescores: list[float] = []
+        packs: list[str] = []
+        songs: list[str] = []
+        rates: list[float] = []
+        all_scores: list[Element] = []
+        songs_root: str = ""
+
+        # Populate the list elements
+        ...
+
+        rustr = RustReplaysAnalysis(
+            prefix, chartkeys, wifescores, packs, songs, rates, songs_root
+        )
+        r = ReplaysAnalysis()
+
+        r.fastest_combo = convert_combo_info(rustr.fastest_combo)
+        r.fastest_jack = convert_combo_info(rustr.fastest_jack)
+        r.fastest_acc = convert_combo_info(rustr.fastest_acc)
+        r.manipulations = rustr.manipulations
+        ...
+    """
 
     r = ReplaysAnalysis()
 
-    chartkeys: List[str] = []
-    wifescores: List[float] = []
-    packs: List[str] = []
-    songs: List[str] = []
-    rates: List[float] = []
-    all_scores: List[Any] = []
+    chartkeys: list[str] = []
+    wifescores: list[float] = []
+    packs: list[str] = []
+    songs: list[str] = []
+    rates: list[float] = []
+    all_scores: list[Element] = []
     for chart in xml.iter("Chart"):
         pack = chart.get("Pack")
         song = chart.get("Song")
+
+        if pack is None or song is None:
+            continue
 
         if "Generation Rock" in song and "German Dump Mini Pack" in pack:
             continue  # this file is borked
 
         for scoresat in chart:
-            rate = float(scoresat.get("Rate"))
+            rate = 0.0
+            if (rate_str := scoresat.get("Rate")) is not None:
+                rate = float(rate_str)
             for score in scoresat:
                 # We exclude failed scores because those exhibit some.. weird behavior in the replay
                 # file. not sure what exactly it is, but somehow the wifescore in the xml doesn't
@@ -88,14 +128,14 @@ def analyze(xml, replays) -> Optional[ReplaysAnalysis]:
                 rates.append(rate)
                 all_scores.append(score)
 
-    prefix = os.path.join(replays, "a")[:-1]
+    prefix = os.path.join(replays, "a")[:-1]  # why?
     print("Starting replays analysis...")
-    rustr = savegame_analysis.ReplaysAnalysis(
+    rustr = RustReplaysAnalysis(
         prefix, chartkeys, wifescores, packs, songs, rates, app.app.prefs.songs_root
     )
     print("Done with replays analysis")
 
-    def convert_combo_info(rust_combo_info):
+    def convert_combo_info(rust_combo_info: FastestComboInfo):
         return FastestCombo(
             length=rust_combo_info.length,
             speed=rust_combo_info.speed,
@@ -139,7 +179,7 @@ def analyze(xml, replays) -> Optional[ReplaysAnalysis]:
     r.new_wifescores = rustr.new_wifescores
 
     r.wifescore_scores = [
-        all_scores[i] for i in rustr.timing_info_dependant_score_indices
+        all_scores[i] for i in rustr.timing_info_dependent_score_indices
     ]
     r.scores = [all_scores[score_index] for score_index in rustr.score_indices]
     r.datetimes = [parsedate(score.findtext("DateTime")) for score in r.scores]

@@ -2,6 +2,7 @@ Pipfile.lock
 src/__pycache__/
 src/savegame_analysis.pyd
 etterna-graph-settings.json
-savegame_analysis/Cargo.lock
-savegame_analysis/target/**
+Cargo.lock
+target/**
+*.html
 

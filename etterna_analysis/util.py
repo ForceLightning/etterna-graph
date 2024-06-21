@@ -1,7 +1,8 @@
-from typing import *
-
-import os, logging, json, math
 from datetime import datetime, timedelta
+import logging
+import math
+from typing import *
+from xml.etree.ElementTree import Element
 
 import app
 
@@ -31,16 +32,16 @@ skillset_colors = [
     "#808080",
 ]
 
-grade_names = "D C B A AA AAA AAAA AAAAA".split(" ")
-grade_thresholds = [-math.inf, 0.6, 0.7, 0.8, 0.93, 0.997, 0.99955, 0.99996]
-D_THRESHOLD = grade_thresholds[0]
-C_THRESHOLD = grade_thresholds[1]
-B_THRESHOLD = grade_thresholds[2]
-A_THRESHOLD = grade_thresholds[3]
-AA_THRESHOLD = grade_thresholds[4]
-AAA_THRESHOLD = grade_thresholds[5]
-AAAA_THRESHOLD = grade_thresholds[6]
-AAAAA_THRESHOLD = grade_thresholds[7]
+GRADE_NAMES = "D C B A AA AAA AAAA AAAAA".split(" ")
+GRADE_THRESHOLDS = [-math.inf, 0.6, 0.7, 0.8, 0.93, 0.997, 0.99955, 0.99996]
+D_THRESHOLD = GRADE_THRESHOLDS[0]
+C_THRESHOLD = GRADE_THRESHOLDS[1]
+B_THRESHOLD = GRADE_THRESHOLDS[2]
+A_THRESHOLD = GRADE_THRESHOLDS[3]
+AA_THRESHOLD = GRADE_THRESHOLDS[4]
+AAA_THRESHOLD = GRADE_THRESHOLDS[5]
+AAAA_THRESHOLD = GRADE_THRESHOLDS[6]
+AAAAA_THRESHOLD = GRADE_THRESHOLDS[7]
 
 
 def bg_color():
@@ -67,7 +68,7 @@ def keep(*args):  # an escape hatch of Python's GC
 
 
 def wifescore_to_grade_string(wifescore: float) -> str:
-    for grade_name, grade_threshold in zip(grade_names, grade_thresholds):
+    for grade_name, grade_threshold in list(zip(GRADE_NAMES, GRADE_THRESHOLDS))[::-1]:
         if wifescore >= grade_threshold:
             return grade_name
     logger.exception("this shouldn't happen")
@@ -99,7 +100,7 @@ def extract_str(string: str, before: str, after: str) -> Optional[str]:
 
 
 # Parses date in Etterna.xml format
-def parsedate(s):
+def parsedate(s: str):
     try:
         return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
     except ValueError:
@@ -116,7 +117,7 @@ def score_within_n_months(score, months: Optional[int]) -> bool:
     return time_delta <= timedelta(365 / 12 * months)
 
 
-def iter_scores(xml) -> Generator[Any, None, None]:
+def iter_scores(xml: Element) -> Generator[Element, None, None]:
     for chart in xml.iter("Chart"):
         if app.app.is_blacklisted(chart.get("Song"), chart.get("Steps")):
             print("hit a blacklisted chart :D", chart.get("Song"))
@@ -157,7 +158,7 @@ def cache(key, data=None) -> Any:
     return cache_data.get(key)  # Return cached data
 
 
-def find_parent_chart(xml, score):
+def find_parent_chart(xml: Element, score: Element):
     score_key = score.get("Key")
     return xml.find(f'.//Score[@Key="{score_key}"]/../..')
 

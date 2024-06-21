@@ -11,6 +11,10 @@ pyqtgraph = {editable = true, ref = "master", git = "git+https://github.com/pyqt
 [dev-packages]
 pynvim = "*"
 black = "*"
+debugpy = "*"
+astroid = "*"
+pyparsing = "*"
+pyo3-stubgen = "*"
 maturin = "*"
 
 [requires]

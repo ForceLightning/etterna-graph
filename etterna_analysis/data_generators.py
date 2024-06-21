@@ -2,6 +2,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 import math
 from typing import *
+from xml.etree.ElementTree import Element
 
 import app
 import util
@@ -178,7 +179,7 @@ def gen_week_skillsets(xml):
     return (week_start_datetimes, diffsets)
 
 
-def gen_plays_by_hour(xml):
+def gen_plays_by_hour(xml: Element) -> tuple[list[int], list[int]]:
     num_plays = [0] * 24
     for score in iter_scores(xml):
         datetime = parsedate(score.find("DateTime").text)
@@ -191,8 +192,8 @@ def gen_plays_by_hour(xml):
     return list(range(24)), num_plays
 
 
-def gen_most_played_charts(xml, num_charts):
-    charts_num_plays = []
+def gen_most_played_charts(xml: Element, num_charts: int) -> list[tuple[Element, int]]:
+    charts_num_plays: list[tuple[Element, int]] = []
     for chart in xml.iter("Chart"):
         score_filter = lambda s: float(s.findtext("SSRNormPercent")) > 0.5
         num_plays = len([s for s in iter_scores(chart) if score_filter(s)])
@@ -203,7 +204,7 @@ def gen_most_played_charts(xml, num_charts):
     return charts_num_plays[:num_charts]
 
 
-def gen_hours_per_skillset(xml):
+def gen_hours_per_skillset(xml: Element):
     hours = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     for score in iter_scores(xml):
@@ -219,18 +220,18 @@ def gen_hours_per_skillset(xml):
     return hours
 
 
-def gen_hours_per_week(xml):
+def gen_hours_per_week(xml: Element) -> tuple[list[datetime], list[int | float]]:
     scores = iter_scores(xml)
-    pairs = [(s, parsedate(s.findtext("DateTime"))) for s in scores]
+    pairs = [(s, parsedate(s.findtext("DateTime"))) for s in scores]  # (score, date)
     pairs.sort(key=lambda pair: pair[1])  # Sort by datetime
 
-    weeks = {}
+    weeks: dict[datetime, int | float] = {}
     week_end = pairs[0][1]  # First (earliest) datetime
     week_start = week_end - timedelta(weeks=1)
     i = 0
     while i < len(pairs):
-        score, datetime = pairs[i][0], pairs[i][1]
-        if datetime < week_end:
+        score, dt = pairs[i][0], pairs[i][1]
+        if dt < week_end:
             score_seconds = float(score.findtext("PlayedSeconds")) or 0
             weeks[week_start] += score_seconds / 3600
             i += 1
@@ -242,8 +243,9 @@ def gen_hours_per_week(xml):
     return (list(weeks.keys()), list(weeks.values()))
 
 
-def calc_average_hours_per_day(xml, timespan=timedelta(days=365 / 2)):
-    scores = sorted(iter_scores(xml), key=lambda s: s.findtext("DateTime"))
+def calc_average_hours_per_day(xml: Element, timespan: timedelta | None = None):
+    timespan = timespan if timespan else timedelta(days=365 / 2)
+    scores: Element = sorted(iter_scores(xml), key=lambda s: s.findtext("DateTime"))
 
     total_hours = 0
     for score in scores:
@@ -255,7 +257,7 @@ def calc_average_hours_per_day(xml, timespan=timedelta(days=365 / 2)):
 # OPTIONAL PLOTS BEGINNING
 
 
-def gen_hit_distribution_sub_93(xml, analysis):
+def gen_hit_distribution_sub_93(xml: Element, analysis):
     buckets = analysis.sub_93_offset_buckets
     return (list(buckets.keys()), list(buckets.values()))
 
@@ -604,12 +606,12 @@ def count_nums_grades(xml):
     grades = []
     for score in util.iter_scores(xml):
         percent = float(score.findtext("SSRNormPercent"))
-        grade = sum(percent >= t for t in util.grade_thresholds) - 1
-        grades.append(util.grade_names[grade])
+        grade = sum(percent >= t for t in util.GRADE_THRESHOLDS) - 1
+        grades.append(util.GRADE_NAMES[grade])
     return Counter(grades)
 
 
-def gen_text_most_played_charts(xml, limit=5):
+def gen_text_most_played_charts(xml: Element, limit: int = 5):
     text = ["Most played charts:"]
     charts = gen_most_played_charts(xml, num_charts=limit)
     i = 1
@@ -712,7 +714,7 @@ def gen_text_general_info(xml, r):
     grades_string = ", ".join(
         f"{name}: {grades[name]}" for name in "AAAA AAA AA A B C D".split()
     )
-    grade_names = list(reversed(util.grade_names))
+    grade_names = list(reversed(util.GRADE_NAMES))
 
     best_aaa = (None, 0)
     best_aaaa = (None, 0)
@@ -806,17 +808,21 @@ def gen_text_general_analysis_info(xml, a):
                 worst_cb_rush_weight_so_far = weight
                 worst_cb_rush_index = i
 
-        def make_worst_cb_rush_string():
-            score = a.wifescore_scores[worst_cb_rush_index]
+        def make_worst_cb_rush_string(index):
+            score = a.wifescore_scores[index]
             chart = util.find_parent_chart(xml, score)
             pack = chart.get("Pack")
             song = chart.get("Song")
-            old = a.current_wifescores[worst_cb_rush_index]
-            new = a.new_wifescores[worst_cb_rush_index]
+            old = a.current_wifescores[index]
+            new = a.new_wifescores[index]
             dt = score.findtext("DateTime")[:10]
             return f"{old*100:.2f}%, {new*100:.2f}% without unfair cb rush - {song} ({pack}) {dt}"
 
-        worst_cb_rush_string = make_worst_cb_rush_string()
+        worst_cb_rush_string = (
+            make_worst_cb_rush_string(worst_cb_rush_index)
+            if worst_cb_rush_index
+            else ""
+        )
     else:
         cbs_string = "[please load replay data]"
         mean_string = "[please load replay data]"

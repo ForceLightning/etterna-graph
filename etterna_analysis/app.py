@@ -10,13 +10,11 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-import app
 import plotter
 import pyqtgraph as pg
 from settings import Settings, SettingsDialog
 from settings import try_choose_replays, try_choose_songs_root, try_select_xml
 import util
-
 
 """
 This file mainly handles the UI and overall program state
@@ -72,9 +70,10 @@ class UI:
         # QScrollArea wrapper with scroll wheel scrolling disabled on plots. I did this to prevent
         # simultaneous scrolling and panning when hovering a plot while scrolling
         class ScrollArea(QScrollArea):
-            def eventFilter(self, _obj, event) -> bool:
+            @override
+            def eventFilter(self, _obj, event: QEvent) -> bool:
                 if event.type() == QEvent.Wheel and any(
-                    w.underMouse() for w in app.app.get_pg_plots()
+                    w.underMouse() for w in app.get_pg_plots()
                 ):
                     return True
                 return False
@@ -86,7 +85,7 @@ class UI:
 
         # Start
         w, h = 1600, 3100
-        if app.app.prefs.enable_all_plots:
+        if app.prefs.enable_all_plots:
             h += 1300  # More plots -> more room
         # ~ root.setMinimumSize(1000, h)
         root.setMinimumHeight(h)
@@ -123,12 +122,16 @@ class UI:
 
 # Handles general application state
 class Application:
-    def run(self):
-        self._pg_plots = None
+    def __init__(self) -> None:
+        self._pg_plots: list[QWidget] = []
+        self._prefs: Settings
+        self._ui: UI
+        self._infobar_link_connection: QMetaObject.Connection | None = None
+        self._blacklisted_charts: list[tuple[str, str]] | None = None
+
+    def run(self) -> None:
         self._prefs = Settings.load_from_json()
         self._ui = UI()
-        self._infobar_link_connection = None
-        self._blacklisted_charts: List[Tuple[str, str]] = None
 
         if self._prefs.is_incomplete():
             self.try_detect_etterna()
@@ -219,13 +222,13 @@ class Application:
             self._prefs.songs_root = songs_root
 
         if self._prefs.replays_dir is None or self._prefs.songs_root is None:
-            QMessageBox.information(
+            _ = QMessageBox.information(
                 None,
                 "Couldn't locate game data",
                 "The ReplaysV2 directory and/or root songs directory could not be found. "
                 + "Please select it manually in the following dialog",
             )
-            SettingsDialog().exec_()
+            _ = SettingsDialog().exec_()
 
         return True
 
@@ -243,7 +246,7 @@ class Application:
         ]
         # Assemble all possible save game locations. path_tuples is a
         # list of tuples `(xml_path, replays_dir_path, songs_root)`
-        path_tuples = []
+        path_tuples: list[tuple[str, str, str]] = []
         for glob_str in globs:
             for path in glob.iglob(glob_str):
                 replays_dir = path + "/Save/ReplaysV2"
@@ -293,11 +296,7 @@ class Application:
         return self._prefs
 
 
-if __name__ == "__main__":
-    try:
-        app.app = Application()
-        app.app.run()
-    except Exception:
-        # Maybe send an automated e-mail to me on Exception in the future?
-        util.logger.exception("Main")
-        input("Press enter to quit")
+# This is the global state (Application object). Accessible from
+# everywhere, because it was getting real annoying it not being
+# accessible from everywhere.
+app: None | Application = None
