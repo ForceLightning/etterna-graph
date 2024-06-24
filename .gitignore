@@ -1,8 +1,15 @@
+# Python
 Pipfile.lock
-src/__pycache__/
-src/savegame_analysis.pyd
-etterna-graph-settings.json
+**/__pycache__/
+**/etterna-graph-settings.json
+*.html
+savegame_analysis.pyd
+
+# Pyinstaller
+build/**
+dist/**
+EtternaGraph.exe
+
+# Rust
 Cargo.lock
 target/**
-*.html
-

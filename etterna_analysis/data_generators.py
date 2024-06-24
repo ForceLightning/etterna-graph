@@ -4,9 +4,8 @@ import math
 from typing import *
 from xml.etree.ElementTree import Element
 
-import app
-import util
-from util import cache, iter_scores, parsedate
+from etterna_analysis import app, util
+from etterna_analysis.util import cache, iter_scores, parsedate
 
 
 """
@@ -408,7 +407,7 @@ def calc_ratings_for_sessions(xml):
     if cache("calc_ratings_for_sessions"):
         return cache("calc_ratings_for_sessions")
 
-    from savegame_analysis import SkillTimeline
+    from etterna_analysis.savegame_analysis import SkillTimeline
 
     sessions = []
     session_ids = []

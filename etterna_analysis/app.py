@@ -1,5 +1,4 @@
 from __future__ import annotations
-from dataclasses import dataclass
 from enum import Enum
 import glob
 import json
@@ -9,12 +8,17 @@ from typing import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-
-import plotter
 import pyqtgraph as pg
-from settings import Settings, SettingsDialog
-from settings import try_choose_replays, try_choose_songs_root, try_select_xml
-import util
+
+from etterna_analysis import plotter, util
+from etterna_analysis.settings import (
+    Settings,
+    SettingsDialog,
+    try_choose_replays,
+    try_choose_songs_root,
+    try_select_xml,
+)
+
 
 """
 This file mainly handles the UI and overall program state
@@ -165,11 +169,17 @@ class Application:
                 content = f.read()
         else:
             try:
-                content = urllib.request.urlopen(
-                    "https://etternaonline.com/unranked"
-                ).read()
-                with open(cache_path, "w") as f:
-                    f.write(content)
+                url = "https://etternaonline.com/unranked"
+                resp = urllib.request.urlopen(url)
+                resp_url = resp.geturl()
+                if resp_url == url:
+                    with open(cache_path, "w") as f:
+                        content = resp.read()
+                        _ = f.write(content)
+                else:
+                    util.logger.exception(f"Request redirected to {resp_url}")
+                    self._blacklisted_charts = []
+                    raise Exception()
             except Exception:
                 util.logger.exception("Couldn't download unranked chart list :(")
                 self._blacklisted_charts = []

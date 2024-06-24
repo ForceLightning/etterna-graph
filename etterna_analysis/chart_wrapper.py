@@ -2,9 +2,10 @@ from datetime import datetime
 import math
 from typing import *
 
-import app
 import pyqtgraph as pg
-import util
+
+from . import app
+from . import util
 
 
 """

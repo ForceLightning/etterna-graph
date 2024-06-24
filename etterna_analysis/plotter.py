@@ -1,15 +1,14 @@
-from typing import *
-
 import sys
+from typing import *
 import xml.etree.ElementTree as ET
 
+from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
 
-import data_generators as g
-from settings import Settings
-import replays_analysis, util, chart_wrapper, app
+from etterna_analysis import data_generators as g
+from etterna_analysis import app, chart_wrapper, replays_analysis, util
+from etterna_analysis.settings import Settings
 
 
 def show_scrollable_msgbox(text, title=None, word_wrap=False):

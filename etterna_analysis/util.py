@@ -4,7 +4,7 @@ import math
 from typing import *
 from xml.etree.ElementTree import Element
 
-import app
+from etterna_analysis import app
 
 
 skillsets = [
