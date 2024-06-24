@@ -4,7 +4,6 @@ use crate::wife::wife3;
 use crate::wife::Wife;
 use crate::{ok_or_continue, some_or_continue};
 use itertools::{izip /*, Itertools*/};
-use permutation::permutation;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use std::ops::Deref;

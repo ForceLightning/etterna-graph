@@ -15,7 +15,7 @@ mod calc_rating {
             .filter(|&x| x > 0.0)
             .sum();
 
-        return power_sum < max_power_sum;
+        power_sum < max_power_sum
     }
 
     /*
@@ -52,7 +52,7 @@ mod calc_rating {
         // Always be ever so slightly above the target value instead of below
         rating += resolution * 2.0;
 
-        return rating * final_multiplier;
+        rating * final_multiplier
     }
 
     /// Basically a 1-to-1 replication of the MinaCalc `aggregate_skill` function.
@@ -137,7 +137,7 @@ impl SkillTimeline {
             index += day_ids.count();
             for (i, ssr_vector) in ssr_vectors.iter().enumerate() {
                 //rating_vectors[i].push(calc_rating::calc_rating(&ssr_vector[..index], 1.11, 0.25));
-                let skill_vector: Vec<_> = ssr_vector.iter().map(|x| x).collect();
+                let skill_vector: Vec<_> = ssr_vector.iter().collect();
                 rating_vectors[i].push(calc_rating::aggregate_skill(
                     &skill_vector[..index],
                     0.1f64,
@@ -158,15 +158,13 @@ impl SkillTimeline {
         )
         .map(|session_tuple| {
             let session_array: [&f32; 7] = session_tuple.into();
-            let overall_rating =
-                calc_rating::aggregate_skill(&session_array, 0.1f64, 1.125f32, None, None);
-            overall_rating
+            calc_rating::aggregate_skill(&session_array, 0.1f64, 1.125f32, None, None)
         })
         .collect();
 
-        return SkillTimeline {
+        SkillTimeline {
             rating_vectors,
             overall_ratings,
-        };
+        }
     }
 }
