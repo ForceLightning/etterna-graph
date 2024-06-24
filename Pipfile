@@ -4,9 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pyqt5 = "*"
-python-dateutil = "*"
-pyqtgraph = {editable = true, ref = "master", git = "git+https://github.com/pyqtgraph/pyqtgraph"}
+pyqt5 = "==5.15.10"
+python-dateutil = "==2.9.0.post0"
+pyqtgraph = "==0.13.7"
 
 [dev-packages]
 pynvim = "*"
@@ -16,6 +16,7 @@ astroid = "*"
 pyparsing = "*"
 pyo3-stubgen = "*"
 maturin = "*"
+pyinstaller = "*"
 
 [requires]
 python_version = "3.12"
