@@ -1,5 +1,5 @@
 [project]
-name = "savegame_analysis"
+name = "etterna_graph"
 version = "0.4-pre-2"
 description = "Python script to track various Etterna statistics"
 readme = "README.md"
@@ -12,3 +12,5 @@ build-backend = "maturin"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 manifest-path = "Cargo.toml"
+module-name = "etterna_graph.savegame_analysis"
+python-source = "python"

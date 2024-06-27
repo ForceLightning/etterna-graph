@@ -6,9 +6,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from etterna_analysis import data_generators as g
-from etterna_analysis import app, chart_wrapper, replays_analysis, util
-from etterna_analysis.settings import Settings
+from etterna_graph import data_generators as g
+from etterna_graph import app, chart_wrapper, replays_analysis, util
+from etterna_graph.settings import Settings
 
 
 def show_scrollable_msgbox(text, title=None, word_wrap=False):

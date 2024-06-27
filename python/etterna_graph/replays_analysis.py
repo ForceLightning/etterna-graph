@@ -3,10 +3,10 @@ import os
 from typing import *
 from xml.etree.ElementTree import Element
 
-from etterna_analysis import app, util
-from etterna_analysis.savegame_analysis import ReplaysAnalysis as RustReplaysAnalysis
-from etterna_analysis.savegame_analysis import FastestComboInfo
-from etterna_analysis.util import parsedate
+from etterna_graph import app, util
+from etterna_graph.savegame_analysis import ReplaysAnalysis as RustReplaysAnalysis
+from etterna_graph.savegame_analysis import FastestComboInfo
+from etterna_graph.util import parsedate
 
 
 @dataclass

@@ -9,7 +9,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from etterna_analysis import app, util
+from etterna_graph import app, util
 
 
 SETTINGS_PATH = "etterna-graph-settings.json"

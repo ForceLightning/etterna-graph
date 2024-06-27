@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ["etterna_analysis\\main.py"],
+    ["python\\etterna_graph\\main.py"],
     pathex=[],
     binaries=[],
     datas=[],
@@ -35,7 +35,7 @@ def extra_datas(mydir: str):
     return extra_datas
 
 
-a.datas += extra_datas("etterna_analysis")
+a.datas += extra_datas("python/etterna_graph")
 
 pyz = PYZ(a.pure)
 

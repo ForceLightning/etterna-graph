@@ -4,8 +4,10 @@ import math
 from typing import *
 from xml.etree.ElementTree import Element
 
-from etterna_analysis import app, util
-from etterna_analysis.util import cache, iter_scores, parsedate
+from etterna_graph import app, util
+from etterna_graph.replays_analysis import ReplaysAnalysis
+from etterna_graph.replays_analysis import FastestCombo
+from etterna_graph.util import cache, iter_scores, parsedate
 
 
 """

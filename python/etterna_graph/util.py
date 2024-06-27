@@ -4,7 +4,7 @@ import math
 from typing import *
 from xml.etree.ElementTree import Element
 
-from etterna_analysis import app
+from etterna_graph import app
 
 
 skillsets = [
@@ -121,6 +121,65 @@ def score_within_n_months(score: Element, months: int | None = None) -> bool:
 
 
 def iter_scores(xml: Element) -> Generator[Element, None, None]:
+    """Returns a generator of all scores in the XML file.
+
+    Scores have the following attributes:
+        * SSRCalcVersion
+        * Grade
+        * WifeScore
+        * WifePoints
+        * SSRNormPercent
+        * JudgeScale
+        * NoChordCohesion
+        * EtternaValid
+        * StageSeed
+        * PlayedSeconds
+        * MaxCombo
+        * Modifiers
+        * MachineGuid
+        * DateTime
+        * TopScore
+        * Servs: list[server]
+        * TapNoteScores
+            * HitMine
+            * AvoidMine
+            * Miss
+            * W5
+            * W4
+            * W3
+            * W2
+            * W1
+        * TNSNormalized
+            * HitMine
+            * AvoidMine
+            * Miss
+            * W5
+            * W4
+            * W3
+            * W2
+            * W1
+        * HoldNoteScores
+            * LetGo
+            * Held
+            * MissedHold
+        * SkillsetSSRs
+            * Overall
+            * Stream
+            * Jumpstream
+            * Handstream
+            * Stamina
+            * Jackspeed
+            * Chordjack
+            * Technical
+        * ValidationKeys
+            * Brittle
+            * Weak
+        * wv?
+
+    :param Element xml: The XML file object.
+    :returns: A generator of scores.
+    :rtype: Generator[Element, None, None]
+    """
     for chart in xml.iter("Chart"):
         for score in chart.iter("Score"):
             # is the score rating unreasonably high?

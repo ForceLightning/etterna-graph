@@ -1,5 +1,5 @@
-from etterna_analysis import app, util
-from etterna_analysis.app import Application
+from etterna_graph import app, util
+from etterna_graph.app import Application
 
 
 def main():

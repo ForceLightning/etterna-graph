@@ -10,8 +10,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import pyqtgraph as pg
 
-from etterna_analysis import plotter, util
-from etterna_analysis.settings import (
+from etterna_graph import plotter, util
+from etterna_graph.settings import (
     Settings,
     SettingsDialog,
     try_choose_replays,
