@@ -407,16 +407,18 @@ def gen_avg_score_per_hour(xml):
 
 
 # the Python wrapping adds about +30% execution time
-def calc_ratings_for_sessions(xml):
-    if cache("calc_ratings_for_sessions"):
-        return cache("calc_ratings_for_sessions")
+def calc_ratings_for_sessions(
+    xml: Element,
+) -> list[tuple[list[tuple[Element, datetime]], list[float], list[float]]]:
+    if ratings_for_sessions := cache("calc_ratings_for_sessions"):
+        return ratings_for_sessions
 
-    from etterna_analysis.savegame_analysis import SkillTimeline
+    from etterna_graph.savegame_analysis import SkillTimeline
 
-    sessions = []
-    session_ids = []
+    sessions: list[list[tuple[Element, datetime]]] = []
+    session_ids: list[int] = []
     # Each row is a session, column being a SSR category.
-    ssr_lists = [[], [], [], [], [], [], []]
+    ssr_lists: list[list[float]] = [[], [], [], [], [], [], []]
     for session_i, session in enumerate(divide_into_sessions(xml)):
         session_has_been_added = False
 
@@ -432,38 +434,60 @@ def calc_ratings_for_sessions(xml):
             session_ids.append(session_i)
 
             for i in range(7):
-                value = float(player_skillsets[i + 1].text)
-                ssr_lists[i].append(value)
+                if (value_str := player_skillsets[i + 1].text) is not None:
+                    value = float(value_str)
+                    ssr_lists[i].append(value)
 
     timeline = SkillTimeline(ssr_lists, session_ids)
 
     # TODO: Move overall ratings calculation to rust
-    def ratings_list(i):
-        ratings = [rating_vector[i] for rating_vector in timeline.rating_vectors]
-        # overall = (sum(ratings) - min(ratings)) / 6
-        overall = timeline.overall_ratings[i]
-        # print(f"rating vec len: {len(timeline.rating_vectors[0])}, overall len: {len(timeline.overall_ratings)}")
+    def ratings_list(
+        i: int, rating_vectors: list[list[float]], overall_ratings: list[float]
+    ) -> list[float]:
+        ratings = [rating_vector[i] for rating_vector in rating_vectors]
+        overall = overall_ratings[i]
         ratings.insert(0, overall)
         return ratings
 
-    session_rating_pairs = [
-        (session, ratings_list(i)) for (i, session) in enumerate(sessions)
+    agg_session_rating_pairs = [
+        (
+            session,
+            ratings_list(i, timeline.agg_rating_vectors, timeline.agg_overall_ratings),
+        )
+        for (i, session) in enumerate(sessions)
     ]
+
+    indiv_session_rating_pairs = [
+        (
+            session,
+            ratings_list(
+                i, timeline.session_rating_vectors, timeline.session_overall_ratings
+            ),
+        )
+        for (i, session) in enumerate(sessions)
+    ]
+
     # session_rating_pairs format:
     # [
     #   (<session>, [25, 17, 41, 23, 25, 26, 12]),
     #   (<session>, [25, 25, 26, 12, 17, 41, 23]),
     # ]
+    _ = cache("calc_agg_ratings_for_sessions", agg_session_rating_pairs)
+    _ = cache("calc_indiv_ratings_for_sessions", indiv_session_rating_pairs)
 
-    return cache("calc_ratings_for_sessions", session_rating_pairs)
+    session_ratings = [
+        (a[0], a[1], b[1])
+        for (a, b) in zip(agg_session_rating_pairs, indiv_session_rating_pairs)
+    ]
 
+    return session_ratings
 
 
 def gen_session_rating_improvement(xml: Element):
     datetimes, lengths, sizes, ids = [], [], [], []
 
     previous_overall = 0
-    for session, ratings in calc_ratings_for_sessions(xml):
+    for session, ratings, _ in calc_ratings_for_sessions(xml):
         # Overall-rating delta
         overall_delta = ratings[0] - previous_overall
 

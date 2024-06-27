@@ -1,7 +1,8 @@
-use itertools::{izip, Itertools};
 use pyo3::prelude::*;
 
 mod calc_rating {
+    use itertools::{izip, Itertools};
+
     fn erfc(x: f32) -> f32 {
         libm::erfc(x as f64) as f32
     }
@@ -101,50 +102,25 @@ mod calc_rating {
         rating += resolution * 2.0f32;
         rating * result_multiplier
     }
-}
 
-#[pyclass]
-pub struct SkillTimeline {
-    #[pyo3(get)]
-    pub rating_vectors: [Vec<f32>; 7],
-
-    #[pyo3(get)]
-    pub overall_ratings: Vec<f32>,
-}
-
-#[pymethods]
-impl SkillTimeline {
-    #[new]
-    // used to be: pub fn create(ssr_vectors: [&[f32]; 7], day_ids: &[u64]) -> Self {
-
-    /// Instantiates the SkillTimeline object with a 2D array of sessions and SSRs
-    /// # Arguments
-    /// * `ssr_vectors` - A 2D Vec with the outer index being the sessions and the inner index
-    /// being the skillset category.
-    /// * `day_ids` - A Vec of session IDs.
-    /// # Example
-    /// ```py
-    /// ssr_lists = [[], [], [], [], [], [], []]
-    /// # Populate the ssr_lists
-    /// ...
-    /// timeline = SkillTimeline(ssr_lists, list(range(len(ssr_lists))))
-    /// ```
-    pub fn create(ssr_vectors: Vec<Vec<f32>>, day_ids: Vec<u64>) -> Self {
+    pub fn aggregate_timeline_skill(
+        ssr_vectors: &[Vec<f32>],
+        session_ids: &[u64],
+    ) -> ([Vec<f32>; 7], Vec<f32>) {
         let mut rating_vectors: [Vec<f32>; 7] =
             [vec![], vec![], vec![], vec![], vec![], vec![], vec![]];
         let mut index = 0;
-        for (_day_id, day_ids) in &day_ids.iter().group_by(|&&x| x) {
-            index += day_ids.count();
+        for (_session_id, session_ids) in &session_ids.iter().group_by(|&&x| x) {
+            index += session_ids.count();
             for (i, ssr_vector) in ssr_vectors.iter().enumerate() {
-                //rating_vectors[i].push(calc_rating::calc_rating(&ssr_vector[..index], 1.11, 0.25));
                 let skill_vector: Vec<_> = ssr_vector.iter().collect();
-                rating_vectors[i].push(calc_rating::aggregate_skill(
+                rating_vectors[i].push(aggregate_skill(
                     &skill_vector[..index],
                     0.1f64,
                     1.05f32,
                     None,
                     None,
-                ));
+                ))
             }
         }
         let overall_ratings: Vec<f32> = izip!(
@@ -158,13 +134,108 @@ impl SkillTimeline {
         )
         .map(|session_tuple| {
             let session_array: [&f32; 7] = session_tuple.into();
-            calc_rating::aggregate_skill(&session_array, 0.1f64, 1.125f32, None, None)
+            aggregate_skill(&session_array, 0.1f64, 1.125f32, None, None)
         })
         .collect();
 
+        (rating_vectors, overall_ratings)
+    }
+
+    pub fn aggregate_session_skill(
+        ssr_vectors: &[Vec<f32>],
+        session_ids: &[u64],
+    ) -> ([Vec<f32>; 7], Vec<f32>) {
+        let mut rating_vectors: [Vec<f32>; 7] =
+            [vec![], vec![], vec![], vec![], vec![], vec![], vec![]];
+        let mut start_index = 0;
+        let mut end_index = 0;
+        for (_session_id, session_ids) in &session_ids.iter().group_by(|&&x| x) {
+            end_index += session_ids.count();
+            for (i, ssr_vector) in ssr_vectors.iter().enumerate() {
+                let skill_vector: Vec<_> = ssr_vector.iter().collect();
+                rating_vectors[i].push(aggregate_skill(
+                    &skill_vector[start_index..end_index],
+                    0.1f64,
+                    1.05f32,
+                    None,
+                    None,
+                ))
+            }
+            start_index = end_index;
+        }
+
+        let overall_ratings: Vec<f32> = izip!(
+            &rating_vectors[0],
+            &rating_vectors[1],
+            &rating_vectors[2],
+            &rating_vectors[3],
+            &rating_vectors[4],
+            &rating_vectors[5],
+            &rating_vectors[6],
+        )
+        .map(|session_tuple| {
+            let session_array: [&f32; 7] = session_tuple.into();
+            aggregate_skill(&session_array, 0.164, 1.125f32, None, None)
+        })
+        .collect();
+        (rating_vectors, overall_ratings)
+    }
+}
+
+/// A representation of a player's skill over time.
+///
+/// # Parameters
+/// * `agg_rating_vectors` - Skill rating vectors aggregated over all plays a player has ever made
+/// up to each session.
+/// * `agg_overall_ratings` - The "Overall" skill rating vector aggregated over all plays a player
+/// has ever made up to each session.
+/// * `session_rating_vectors` - Skill rating vectors aggregated over each session.
+/// * `session_overall_ratings` - The "Overall" skill rating vector aggregated over each session.
+///
+#[pyclass]
+pub struct SkillTimeline {
+    #[pyo3(get)]
+    pub agg_rating_vectors: [Vec<f32>; 7],
+
+    #[pyo3(get)]
+    pub agg_overall_ratings: Vec<f32>,
+
+    #[pyo3(get)]
+    pub session_rating_vectors: [Vec<f32>; 7],
+
+    #[pyo3(get)]
+    pub session_overall_ratings: Vec<f32>,
+}
+
+#[pymethods]
+impl SkillTimeline {
+    #[new]
+    // used to be: pub fn create(ssr_vectors: [&[f32]; 7], day_ids: &[u64]) -> Self {
+
+    /// Instantiates the SkillTimeline object with a 2D array of sessions and SSRs
+    /// # Arguments
+    /// * `ssr_vectors` - A 2D Vec with the outer index being the sessions and the inner index
+    /// being the skillset category.
+    /// * `session_ids` - A Vec of session IDs.
+    /// # Example
+    /// ```py
+    /// ssr_lists = [[], [], [], [], [], [], []]
+    /// # Populate the ssr_lists
+    /// ...
+    /// timeline = SkillTimeline(ssr_lists, list(range(len(ssr_lists))))
+    /// ```
+    pub fn create(ssr_vectors: Vec<Vec<f32>>, session_ids: Vec<u64>) -> Self {
+        let (agg_rating_vectors, agg_overall_ratings) =
+            calc_rating::aggregate_timeline_skill(&ssr_vectors, &session_ids);
+
+        let (session_rating_vectors, session_overall_ratings) =
+            calc_rating::aggregate_session_skill(&ssr_vectors, &session_ids);
+
         SkillTimeline {
-            rating_vectors,
-            overall_ratings,
+            agg_rating_vectors,
+            agg_overall_ratings,
+            session_rating_vectors,
+            session_overall_ratings,
         }
     }
 }

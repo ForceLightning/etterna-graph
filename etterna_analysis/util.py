@@ -148,12 +148,15 @@ def timespan_str(hours):
 
 cache_data = {}
 
+T = TypeVar("T")
 
-def cache(key, data=None) -> Any:
+
+def cache(key, data: T | None = None) -> T | None:
     global cache_data
 
     if data is not None:  # If data was given, update cache
         cache_data[key] = data
+        return data
     return cache_data.get(key)  # Return cached data
 
 

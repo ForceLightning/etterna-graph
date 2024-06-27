@@ -1,9 +1,11 @@
 class SkillTimeline:
     def __init__(
-        self, ssr_vectors: list[list[float]], day_ids: list[float]
+        self, ssr_vectors: list[list[float]], session_ids: list[int]
     ) -> None: ...
-    rating_vectors: list[list[float]]
-    overall_ratings: list[float]
+    agg_rating_vectors: list[list[float]]
+    agg_overall_ratings: list[float]
+    session_rating_vectors: list[list[float]]
+    session_overall_ratings: list[float]
 
 class FastestComboInfo:
     start_second: float

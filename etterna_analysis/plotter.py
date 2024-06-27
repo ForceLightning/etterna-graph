@@ -476,7 +476,17 @@ def draw(
         legend=["Overall", *util.skillsets],  # Include overall
         data=g.gen_skillset_development(xml),
     )
-    plotbox(plot, "Skillsets over time", colspan=2)
+    plotbox(plot, "Aggregated Skillsets over time", colspan=2)
+
+    qapp.processEvents()
+    plot = chart_wrapper.draw(
+        type_="stacked line",
+        flags="time_xaxis",
+        color=["#ffffff", *util.skillset_colors],  # Include overall
+        legend=["Overall", *util.skillsets],  # Include overall
+        data=g.gen_skillset_development(xml, aggregated=False),
+    )
+    plotbox(plot, "Skillsets per session over time", colspan=2)
 
     qapp.processEvents()
     plot = chart_wrapper.draw(
