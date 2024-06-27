@@ -100,7 +100,7 @@ def extract_str(string: str, before: str, after: str) -> Optional[str]:
 
 
 # Parses date in Etterna.xml format
-def parsedate(s: str):
+def parsedate(s: str) -> datetime:
     try:
         return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
     except ValueError:
@@ -109,20 +109,19 @@ def parsedate(s: str):
         return datetime.strptime(s, "%Y-%m-%d")
 
 
-def score_within_n_months(score, months: Optional[int]) -> bool:
+def score_within_n_months(score: Element, months: int | None = None) -> bool:
     if months is None:
         return True
 
-    time_delta = datetime.now() - parsedate(score.findtext("DateTime"))
-    return time_delta <= timedelta(365 / 12 * months)
+    if (datetime_text := score.findtext("DateTime")) is not None:
+        time_delta = datetime.now() - parsedate(datetime_text)
+        return time_delta <= timedelta(365 / 12 * months)
+
+    return True
 
 
 def iter_scores(xml: Element) -> Generator[Element, None, None]:
     for chart in xml.iter("Chart"):
-        if app.app.is_blacklisted(chart.get("Song"), chart.get("Steps")):
-            print("hit a blacklisted chart :D", chart.get("Song"))
-            continue
-
         for score in chart.iter("Score"):
             # is the score rating unreasonably high?
             skillset_ssrs = score.find("SkillsetSSRs")

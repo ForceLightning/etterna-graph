@@ -3,6 +3,7 @@ import math
 from typing import *
 
 import pyqtgraph as pg
+from pyqtgraph.graphicsItems.PlotItem import PlotItem
 
 from . import app
 from . import util
@@ -94,17 +95,17 @@ class DIYLogAxisItem(pg.AxisItem):
 #  "stacked line"
 # width: (only for bar charts) width of the bars
 def draw(
-    data,
-    flags="",
-    title=None,
-    color="white",
-    alpha=0.4,
-    legend=None,
+    data: tuple[Iterable, ...],
+    flags: str = "",
+    title: str | None = None,
+    color: str | list[str] = "white",
+    alpha: float = 0.4,
+    legend: list[str] | None = None,
     log_axis_max_shown_value=None,
     log_axis_min_shown_value=None,
-    click_callback=None,
-    type_="scatter",
-    width=0.8,
+    click_callback: Callable | None = None,
+    type_: str = "scatter",
+    width: float = 0.8,
 ):
 
     log_axis_kwargs = {}
@@ -138,7 +139,7 @@ def draw(
         )
 
     plot_widget = pg.PlotWidget(axisItems=axisItems)
-    plot = plot_widget.getPlotItem()
+    plot: PlotItem = plot_widget.getPlotItem()
     plot.setTitle(title)
     if "log" in flags:
         plot.setLogMode(x=False, y=True)  # does this do anything? idk
@@ -149,7 +150,7 @@ def draw(
     def click_handler(_, points):
         if len(points) > 1:
             app.app.set_infobar(f"{len(points)} points selected at once!")
-        else:
+        elif click_callback is not None:
             try:
                 (click_callback)(points[0].data())
             except Exception:
@@ -173,11 +174,11 @@ def draw(
     else:
         (x, y) = data
 
-    if "time_xaxis" in flags:
+    if "time_xaxis" in flags and x is not None:
         x = [value.timestamp() for value in x]
 
     step_mode = "step" in flags
-    if step_mode:
+    if step_mode and x is not None:
         x = [*x, x[-1]]  # Duplicate last element to satisfy pyqtgraph with stepMode
         # Out-of-place to avoid modifying the passed-in list
 
@@ -186,7 +187,7 @@ def draw(
         plot.legend.setBrush(app.app.prefs.legend_bg_color)
         plot.legend.setPen(util.border_color())
 
-    if type_ == "stacked bar":
+    if type_ == "stacked bar" and y is not None:
         num_cols = len(y)
         y = list(zip(*y))
         bottom = [0] * num_cols

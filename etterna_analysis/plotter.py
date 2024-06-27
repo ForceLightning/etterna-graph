@@ -37,7 +37,7 @@ def show_scrollable_msgbox(text, title=None, word_wrap=False):
     msgbox.exec_()
 
 
-def show_score_info(xml, score) -> None:
+def show_score_info(xml: ET.Element, score: ET.Element) -> None:
     datetime = score.findtext("DateTime")
     wifescore = float(score.findtext("SSRNormPercent"))
     chart = util.find_parent_chart(xml, score)
@@ -118,6 +118,8 @@ def show_session_info(data) -> None:
 
     text = f"From {prev_rating} to {then_rating}    Total {length} minutes ({num_scores} scores)"
     text += '    <a href="read-more">Show more</a>'
+
+    # TODO: Add 'show more' info.
 
     app.app.set_infobar(text)
 

@@ -96,9 +96,9 @@ def gen_ma(xml):
 
 # Returns list of sessions where a session is [(Score, datetime)]
 # A session is defined to end when there's no play in 60 minutes or more
-def divide_into_sessions(xml) -> list:
-    if cache("sessions_division_cache"):
-        return cache("sessions_division_cache")
+def divide_into_sessions(xml: Element) -> list[list[tuple[Element, datetime]]]:
+    if sessions := cache("sessions_division_cache"):
+        return sessions
 
     session_end_threshold = timedelta(hours=1)
 
@@ -113,7 +113,9 @@ def divide_into_sessions(xml) -> list:
     current_session = [
         zipped[0]
     ]  # list of (score object, datetime) tuples in current session
-    sessions = []  # list of sessions where every session is like `current_session`
+    sessions: list[list[tuple[Element, datetime]]] = (
+        []
+    )  # list of sessions where every session is like `current_session`
     for score, score_datetime in zipped[1:]:
         score_interval = score_datetime - prev_score_datetime
         # check if timedelta between two scores is too high
@@ -123,26 +125,28 @@ def divide_into_sessions(xml) -> list:
         current_session.append((score, score_datetime))
         prev_score_datetime = score_datetime
     sessions.append(current_session)
+    _ = cache("sessions_division_cache", sessions)
 
-    return cache("sessions_division_cache", sessions)
+    return sessions
 
 
-def gen_wifescore_frequencies(xml):
+def gen_wifescore_frequencies(xml: Element) -> tuple[list[int], list[int]]:
     # e.g. the 0.70 bucket corresponds to all scores between 0.70 and 0.71 (not 0.695 and 0.705!)
     frequencies = {percent: 0 for percent in range(70, 100)}
 
     for score in iter_scores(xml):
-        wifescore = float(score.findtext("SSRNormPercent"))
-        percent = round(wifescore * 100)
-        if percent in frequencies:
-            frequencies[percent] += 1
+        if ssr_norm_percent := score.findtext("SSRNormPercent"):
+            wifescore = float(ssr_norm_percent)
+            percent = round(wifescore * 100)
+            if percent in frequencies:
+                frequencies[percent] += 1
     return list(frequencies.keys()), list(frequencies.values())
 
 
 # Return format: [[a,a...],[b,b...],[c,c...],[d,d...],[e,e...],[f,f...],[g,g...]]
-def gen_week_skillsets(xml):
+def gen_week_skillsets(xml: Element) -> tuple[list[datetime], list[List[float]]]:
     # returns an integer week from 0-51
-    def week_from_score(score) -> int:
+    def week_from_score(score: Element) -> int:
         datetime = parsedate(score.findtext("DateTime"))
         week = datetime.isocalendar()[1]
         return week
@@ -336,11 +340,11 @@ def gen_session_plays(xml):
 	return (x_list, [cbs[i]/base[i] for i in x_list])"""
 
 
-def gen_plays_per_week(xml):
+def gen_plays_per_week(xml: Element):
     datetimes = [parsedate(s.findtext("DateTime")) for s in iter_scores(xml)]
     datetimes.sort()
 
-    weeks = {}
+    weeks: dict[datetime, int] = {}
     week_end = datetimes[0]
     week_start = week_end - timedelta(weeks=1)
     i = 0
@@ -454,7 +458,8 @@ def calc_ratings_for_sessions(xml):
     return cache("calc_ratings_for_sessions", session_rating_pairs)
 
 
-def gen_session_rating_improvement(xml):
+
+def gen_session_rating_improvement(xml: Element):
     datetimes, lengths, sizes, ids = [], [], [], []
 
     previous_overall = 0
@@ -479,22 +484,23 @@ def gen_session_rating_improvement(xml):
 
 
 # Returns tuple of `(max_combo_chart_element, max_combo_int)`
-def find_longest_combo(xml) -> tuple:
+def find_longest_combo(xml: Element) -> tuple[Element | None, int]:
     max_combo_chart = None
     max_combo = 0
     for chart in xml.iter("Chart"):
         for score in iter_scores(chart):
-            combo = int(score.findtext("MaxCombo"))
-            if combo > max_combo:
-                max_combo = combo
-                max_combo_chart = chart
+            if (max_combo_str := score.findtext("MaxCombo")) is not None:
+                combo = int(max_combo_str)
+                if combo > max_combo:
+                    max_combo = combo
+                    max_combo_chart = chart
     return max_combo_chart, max_combo
 
 
 # Returns dict with pack names as keys and the respective "pack liking"
 # as value. The liking value is currently simply the amount of plays in the pack
-def generate_pack_likings(xml, months) -> dict:
-    likings = {}
+def generate_pack_likings(xml: Element, months: int | None) -> dict[str, int]:
+    likings: dict[str, int] = {}
     for chart in xml.iter("Chart"):
         num_relevant_plays = 0
         for score in iter_scores(chart):
@@ -502,14 +508,15 @@ def generate_pack_likings(xml, months) -> dict:
                 num_relevant_plays += 1
         pack = chart.get("Pack")
 
-        if pack not in likings:
+        if pack not in likings and pack:
             likings[pack] = 0
-        likings[pack] += num_relevant_plays
+        elif pack in likings:
+            likings[pack] += num_relevant_plays
 
     return likings
 
 
-def calculate_total_wifescore(xml, months=6):
+def calculate_total_wifescore(xml: Element, months: int = 6) -> float:
     weighted_sum = 0
     num_notes_sum = 0
     for score in iter_scores(xml):
@@ -519,8 +526,9 @@ def calculate_total_wifescore(xml, months=6):
         num_notes = util.num_notes(score)
         num_notes_sum += util.num_notes(score)
 
-        wifescore = float(score.findtext("SSRNormPercent"))
-        weighted_sum += wifescore * num_notes
+        if (ssr_norm_percent := score.findtext("SSRNormPercent")) is not None:
+            wifescore = float(ssr_norm_percent)
+            weighted_sum += wifescore * num_notes
 
     try:
         return weighted_sum / num_notes_sum
@@ -528,15 +536,21 @@ def calculate_total_wifescore(xml, months=6):
         return 0
 
 
-def gen_skillset_development(xml):
+def gen_skillset_development(
+    xml: Element, aggregated: bool = True
+) -> tuple[list[datetime], list[float]]:
     datetimes, all_ratings = [], []
-    for session, ratings in calc_ratings_for_sessions(xml):
-        datetimes.append(session[0][1])
-        all_ratings.append(ratings)
+    for (
+        agg_session,
+        agg_ratings,
+        indiv_ratings,
+    ) in calc_ratings_for_sessions(xml):
+        datetimes.append(agg_session[0][1])
+        all_ratings.append(agg_ratings if aggregated else indiv_ratings)
     return (datetimes, all_ratings)
 
 
-def gen_cmod_over_time(xml):
+def gen_cmod_over_time(xml: Element):
     # These values were gathered through a quick-and-dirty screen recording based test
     perspective_mod_multipliers = {
         "Incoming": 1 / 1.2931,
@@ -760,13 +774,12 @@ def gen_text_general_info(xml, r):
 
 
 # a stands for ReplaysAnalysis
-def gen_text_general_analysis_info(xml, a):
+def gen_text_general_analysis_info(xml: Element, a: ReplaysAnalysis | None) -> str:
+    long_mcombo_str = "[please load replay data]"
     if a:  # If ReplaysAnalysis is avilable
-        chart = a.longest_mcombo[1]
-        long_mcombo_chart = f'"{chart.get("Song")}" ({chart.get("Pack")})'
-        long_mcombo_str = f"{a.longest_mcombo[0]} on {long_mcombo_chart}"
-    else:
-        long_mcombo_str = "[please load replay data]"
+        if chart := a.longest_mcombo[1]:
+            long_mcombo_chart = f'"{chart.get("Song")}" ({chart.get("Pack")})'
+            long_mcombo_str = f"{a.longest_mcombo[0]} on {long_mcombo_chart}"
 
     chart, combo = find_longest_combo(xml)
     long_combo_chart = f'"{chart.get("Song")}" ({chart.get("Pack")})'
@@ -847,7 +860,7 @@ def gen_text_general_analysis_info(xml, a):
     total_wifescore = calculate_total_wifescore(xml, months=6)
     total_wifescore_str = f"{round(total_wifescore * 100, 2)}%"
 
-    def gen_fastest_combo_string(cmb):
+    def gen_fastest_combo_string(cmb: None | FastestCombo) -> str:
         if cmb is None:
             return "[please load replay data]"
         elif cmb.score is None:
@@ -884,7 +897,7 @@ def gen_text_general_analysis_info(xml, a):
     )
 
 
-def gen_text_most_played_packs(xml, limit=10, months: Optional[int] = None):
+def gen_text_most_played_packs(xml, limit=10, months: int | None = None) -> str:
     likings = generate_pack_likings(xml, months)
 
     sorted_packs = sorted(likings, key=likings.get, reverse=True)

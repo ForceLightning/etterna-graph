@@ -194,6 +194,8 @@ class Settings:
         self.text_color: str
         self.border_color: str
         self.link_color: str
+        self.legend_bg_color: str
+        self.msgbox_num_scores_threshold: int
 
     @staticmethod
     def load_from_json() -> Settings:

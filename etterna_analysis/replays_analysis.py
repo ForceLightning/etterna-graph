@@ -109,9 +109,11 @@ def analyze(xml: Element, replays: str) -> ReplaysAnalysis | None:
             continue  # this file is borked
 
         for scoresat in chart:
-            rate = 0.0
-            if (rate_str := scoresat.get("Rate")) is not None:
-                rate = float(rate_str)
+            rate = (
+                float(rate_str)
+                if (rate_str := scoresat.get("Rate") is not None)
+                else 0.0
+            )
             for score in scoresat:
                 # We exclude failed scores because those exhibit some.. weird behavior in the replay
                 # file. not sure what exactly it is, but somehow the wifescore in the xml doesn't

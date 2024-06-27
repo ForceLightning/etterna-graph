@@ -4,12 +4,12 @@ use super::Wife;
 pub fn ett_erf(x: f32) -> f32 {
     let exp = |x| std::f32::consts::E.powf(x);
 
-    const A1: f32 = 0.254829592;
-    const A2: f32 = -0.284496736;
-    const A3: f32 = 1.421413741;
-    const A4: f32 = -1.453152027;
-    const A5: f32 = 1.061405429;
-    const P: f32 = 0.3275911;
+    const A1: f32 = 0.254_829_592;
+    const A2: f32 = -0.284_496_736;
+    const A3: f32 = 1.421_413_741;
+    const A4: f32 = -1.453_152_027;
+    const A5: f32 = 1.061_405_429;
+    const P: f32 = 0.327_591_1;
 
     let sign = if x < 0.0 { -1.0 } else { 1.0 };
     let x = x.abs();
@@ -77,4 +77,3 @@ impl Wife for Wife3 {
         Self::calc_inner(deviation) / 2.0 // Divide by two to revert the max=2 scaling
     }
 }
-
