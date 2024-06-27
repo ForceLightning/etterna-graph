@@ -131,7 +131,6 @@ class Application:
         self._prefs: Settings
         self._ui: UI
         self._infobar_link_connection: QMetaObject.Connection | None = None
-        self._blacklisted_charts: list[tuple[str, str]] | None = None
 
     def run(self) -> None:
         self._prefs = Settings.load_from_json()
@@ -146,8 +145,6 @@ class Application:
 
         self._prefs.save_to_json()
 
-        self._download_blacklisted_charts()
-
         box_container, plot_container = self._ui.get_box_container_and_plot_container()
         self._pg_plots = plotter.draw(
             self._ui.get_qapp(), box_container, plot_container, self._prefs
@@ -157,43 +154,6 @@ class Application:
 
     def process_events(self):
         self._ui.qapp.processEvents()
-
-    def _download_blacklisted_charts(self):
-        import urllib.request, os
-
-        self._blacklisted_charts = []
-
-        cache_path = "etterna-graph-unranked-cache.html"
-        if os.path.exists(cache_path):
-            with open(cache_path, "r") as f:
-                content = f.read()
-        else:
-            try:
-                url = "https://etternaonline.com/unranked"
-                resp = urllib.request.urlopen(url)
-                resp_url = resp.geturl()
-                if resp_url == url:
-                    with open(cache_path, "w") as f:
-                        content = resp.read()
-                        _ = f.write(content)
-                else:
-                    util.logger.exception(f"Request redirected to {resp_url}")
-                    self._blacklisted_charts = []
-                    raise Exception()
-            except Exception:
-                util.logger.exception("Couldn't download unranked chart list :(")
-                self._blacklisted_charts = []
-                return
-
-        for row in util.extract_strs(content, "<tr>", "</tr>"):
-            name = util.extract_str(row, '">', "<")
-            steps = util.extract_str(
-                util.extract_str(row, "</td>", "</td>"), "<td>", "</td>"
-            )
-            self._blacklisted_charts.append((name, steps))
-
-    def is_blacklisted(self, songname: str, stepstype: str) -> bool:
-        return (songname, stepstype) in self._blacklisted_charts
 
     def get_pg_plots(self) -> Optional[List[QWidget]]:
         return self._pg_plots
