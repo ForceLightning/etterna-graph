@@ -379,7 +379,7 @@ class SettingsDialog(QDialog):
 
     def try_save(self):
         # setting here
-        missing_inputs = [str]
+        missing_inputs: list[str] = []
         for entry in SETTINGS_ENTRIES:
             if entry.is_necessary:
                 if not entry.settings_type in (SettingsType.File, SettingsType.Folder):
