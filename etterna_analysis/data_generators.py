@@ -265,16 +265,28 @@ def gen_hit_distribution_sub_93(xml: Element, analysis):
     return (list(buckets.keys()), list(buckets.values()))
 
 
-def gen_idle_time_buckets(xml):
+def gen_idle_time_buckets(xml: Element) -> tuple[range, list[int]]:
     # Each bucket is 5 seconds. Total 10 minutes is tracked
     buckets = [0] * 600
 
     a, b = 0, 0
 
-    scores = []
+    scores: list[tuple[Element, float]] = []
     for scoresat in xml.iter("ScoresAt"):
-        rate = float(scoresat.get("Rate"))
-        scores.extend(((score, rate) for score in iter_scores(scoresat)))
+        rate = (
+            float(rate_str) if (rate_str := scoresat.get("Rate")) is not None else 0.0
+        )
+        score_tuples: list[tuple[Element, float]] = []
+        for score in scoresat.iter("Score"):
+            if (skillset_ssrs := score.find("SkillsetSSRs")) is not None:
+                overall_ssr = float(skillset_ssrs.findtext("Overall"))
+                if overall_ssr > 40:
+                    continue
+            if score.findtext("EtternaValid") == "0" and app.app.prefs.hide_invalidated:
+                continue
+            score_tuples.append((score, rate))
+
+        scores.extend(score_tuples)
 
     # Sort scores by datetime, oldest first
     scores.sort(key=lambda pair: pair[0].findtext("DateTime"))
